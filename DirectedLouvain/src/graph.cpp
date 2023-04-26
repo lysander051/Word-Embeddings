@@ -52,20 +52,6 @@ Graph::Graph(const Graph &g) {
     this->correspondance    = g.correspondance;
 }
 
-void Graph::display() const {
-    for (unsigned int node = 0; node < this->nodes; ++node) {
-        size_t p = this->out_neighbors(node);
-        cout << this->correspondance[node] << ":";
-        for (unsigned int i = 0; i < out_degree(node); ++i) {
-            if (this->weighted)
-                cout << " (" << this->outcoming_arcs[p + i] << " " << this->outcoming_weights[p + i] << ")";
-            else
-                cout << " " << this->outcoming_arcs[p+i];
-        }
-        cout << endl;
-    }
-}
-
 double Graph::count_selfloops(unsigned int node) {
     assert(node<this->nodes);
     size_t p = this->out_neighbors(node);

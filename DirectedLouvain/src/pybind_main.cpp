@@ -19,11 +19,10 @@ PYBIND11_MODULE(directedlouvain, dl) {
                  py::arg("graph"), py::arg("weighted") = false, py::arg("precision") = 0.0001, py::arg("gamma") = 1,
                  py::arg("reproducibility") = false, py::arg("renumbering") = true, py::arg("sorted") = false)
             .def("run", &Community::run,
-                 py::arg("verbose") = false, py::arg("display_level") = -1, py::arg("filename_part") = "",
+                 py::arg("verbose") = false, py::arg("display_level") = -1,
                  py::call_guard<py::scoped_ostream_redirect,
                  py::scoped_estream_redirect>())
             .def("modularity", &Community::modularity)
-            .def("get_community", &Community::get_final_community)
             .def("get_level", &Community::get_level,
                  py::arg("level") = 0)
             .def("print_level", &Community::print_level,

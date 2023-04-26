@@ -83,9 +83,6 @@ class Graph {
          */ 
         Graph (const Graph &g);
 
-        //! Member function printing the Graph object in edgelist format on standard output
-        void display() const;
-
         //! Member function returning the weight (if weighted) or number (else) of self loops of the node
         /*!
          * \param node the node to consider

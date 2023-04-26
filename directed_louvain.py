@@ -1,5 +1,6 @@
 import spacy
 import directedlouvain as dl
+import networkx as nx
 
 
 def _graph_reference(doc, graph, reference):
@@ -62,7 +63,7 @@ def _write_graph(graph):
     """
     file = open("graph_text.txt", "w")
     for head, tail in graph:
-        file.write(str(head) + " " + str(tail) + " " + str(graph[(head, tail)]) + "\n")
+        file.write(str(head) + " " + str(tail) + " " +  "\n")
     file.close()
 
 
@@ -87,8 +88,7 @@ def directed_louvain(filename="text.txt", pipeline="en_core_web_sm"):
     _write_graph(graph)
 
     louvain = dl.Community(graph, weighted=True, gamma=55)
-    louvain.run()
-    community = _community_of_words(louvain.get_community(), reference)
+    community = _community_of_words(louvain.run(), reference)
     print(community)
     print("Community average size: " + str(len(reference)/len(community)))
 

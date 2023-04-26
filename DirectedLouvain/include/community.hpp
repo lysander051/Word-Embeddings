@@ -50,12 +50,6 @@ class Community {
 
         void init_attributes();
 
-        //! Private member function initiliazing first partition with something different than identity
-        /*!
-         * \param filename the partition to be read
-         */
-        void init_partition(string filename);
-
         //! Private member function updating the graph to compute communities for 
         /*!
          * \sa one_level()
@@ -101,12 +95,6 @@ class Community {
         */
         map<int, int> get_level(int level);
 
-
-        map<int, int> get_final_community();
-
-        //! Member function displaying the community of each node
-        void display();
-
         // Member function computing the directed modularity of the current partition
         /*!
          * \return the value of directed modularity for the current partition
@@ -119,15 +107,13 @@ class Community {
         //! Member function computing communities of the Graph attribute for one level
         /*!
          * \param verbose       boolean value indicating if verbose mode is activated
-         * \param display_level integer value representing the level to display 
-         * \param filename_part     an initial partition file (absolute or relative path)
-         * \return the number of levels computed by the algorithm
-         * The algorithm proceeds while the one_level() function returns true
+         * \param display_level integer value representing the level to display
+         * \return return a map of point associate with their community
          * FIXME: the possibility to end after a given number of passes has been removed because  
          *        we never used it. Should we plug it back? (easy to do but...)
          * \sa one_level(), modularity_gain()
          */
-        int run(bool verbose, const int& display_level, const string& filename_part);
+        map<int,int> run(bool verbose, const int& display_level);
 
         //! Member function printing a given hierarchical level on standard output
         /*!
@@ -180,10 +166,6 @@ class Community {
          */ 
         friend void list_neighboring_communities(const unsigned int& node, const Community &c, vector<double> &neighbor_weight, vector<unsigned int> &neigh_pos, unsigned int &neighboring_communities);
 
-        //! Getter for the graph to compute communities for
-        inline const Graph *get_graph() {
-            return this->g; 
-        }
         //! Getter for the size (i.e. number of communities)
         inline unsigned int get_size() const {
             return this->size; 
@@ -195,13 +177,6 @@ class Community {
          */
         inline unsigned int get_community(unsigned int node) const {
             return this->node_to_community[node];
-        }
-        //! Getter for the hierarchical community structure
-        /*!
-         * \return A vector of vector of int containing each level of the hierarchical community structure
-         */
-        inline const vector< vector<int> > & get_hierarchy() const {
-            return this->levels;
         }
 
 };
