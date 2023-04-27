@@ -8,7 +8,7 @@
 #include "../include/graph.hpp"
 
 const unsigned int MAP_LIMIT = 5000000;
-static unsigned int build_map(std::map<std::pair<int,int>, int> &, vector<unsigned long>&, vector<vector<pair<unsigned int,double> > >&, vector<vector<pair<unsigned int,double> > >&, bool, bool, bool, bool);
+static unsigned int build_map(std::map<std::tuple<int, int>,int> , vector<unsigned long>&, vector<vector<pair<unsigned int,double> > >&, vector<vector<pair<unsigned int,double> > >&, bool, bool, bool, bool);
 
 Graph::Graph() {
     this->nodes         = 0;
@@ -24,7 +24,7 @@ Graph::Graph() {
     this->indegrees.resize(0);
 }
 
-Graph::Graph(std::map<std::pair<int,int>, int> &graph, bool weighted, bool reproducibility, bool renumbering, bool verbose) {
+Graph::Graph(std::map<std::tuple<int, int>,int> graph, bool weighted, bool reproducibility, bool renumbering, bool verbose) {
     vector<vector<pair<unsigned int,double> > > LOUT;
     vector<vector<pair<unsigned int,double> > > LIN;
 

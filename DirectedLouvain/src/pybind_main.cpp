@@ -11,11 +11,9 @@
 
 namespace py = pybind11;
 
-PYBIND11_MAKE_OPAQUE(std::map<std::pair<int, int>, int>)
-
 PYBIND11_MODULE(directedlouvain, dl) {
     py::class_<Community>(dl, "Community")
-            .def(py::init<std::map<std::pair<int,int>, int> &, bool, const double, const double, bool, bool, bool>(),
+            .def(py::init<std::map<std::tuple<int, int>,int> , bool, const double, const double, bool, bool, bool>(),
                  py::arg("graph"), py::arg("weighted") = false, py::arg("precision") = 0.0001, py::arg("gamma") = 1,
                  py::arg("reproducibility") = false, py::arg("renumbering") = true, py::arg("sorted") = false)
             .def("run", &Community::run,
@@ -29,6 +27,4 @@ PYBIND11_MODULE(directedlouvain, dl) {
                  py::arg("level") = 0,
                  py::call_guard<py::scoped_ostream_redirect,
                  py::scoped_estream_redirect>());
-
-    py::bind_map<std::map<std::pair<int,int>, int>>(dl, "mymap");
 }

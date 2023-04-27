@@ -67,7 +67,7 @@ class Graph {
          * \param renumbering       boolean value indicating whether the graph must be renumbered
          * \param verbose           boolean value indicating whether to print information
          */
-        Graph(std::map<std::pair<int,int>, int> &graph, bool weighted, bool reproducibility, bool renumbering, bool verbose=false);
+        Graph(std::map<std::tuple<int, int>,int> graph, bool weighted, bool reproducibility, bool renumbering, bool verbose=false);
         //! Friend method to initialize all attributes 
         /*!
          * \param g the Graph object to initialize

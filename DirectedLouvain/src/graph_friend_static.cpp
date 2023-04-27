@@ -32,8 +32,7 @@ static inline unsigned int get_mapped_node(unsigned long int node, const vector<
 
 // This function builds the map for renumbering the input graph and returns cpt (the number of nodes)
 // If reproducibility is set to true, the renumbered graph is written into a file under edgelist format: src dest (weight)
-static unsigned int build_map(std::map<std::pair<int,int>, int> &graph, vector<unsigned long> &correspondance, vector<vector<pair<unsigned int,double> > > &LOUT, vector<vector<pair<unsigned int,double> > > &LIN, bool weighted, bool renumbering, bool reproducibility, bool verbose) {
-
+static unsigned int build_map(std::map<std::tuple<int, int>,int> graph, vector<unsigned long> &correspondance, vector<vector<pair<unsigned int,double> > > &LOUT, vector<vector<pair<unsigned int,double> > > &LIN, bool weighted, bool renumbering, bool reproducibility, bool verbose) {
     vector<int> corres(MAP_LIMIT,-1);
     map < unsigned long, unsigned int > corres_big_ids;
     if(renumbering && verbose)
@@ -41,20 +40,20 @@ static unsigned int build_map(std::map<std::pair<int,int>, int> &graph, vector<u
     unsigned int cpt = 0;
 
     // Read the graph file to generate a map of node
-    for(const auto &elem: graph){
+    for(const auto &elem : graph){
         unsigned int src, dest, tmp;
 
-        src = elem.first.first;
-        dest = elem.first.second;
+        src = get<0>(elem.first);
+        dest = get<1>(elem.first);
 
         add_to_map(src, cpt, correspondance, corres, corres_big_ids, renumbering);
         add_to_map(dest, cpt, correspondance, corres, corres_big_ids, renumbering);
     }
 
 
-    // If the graph is already renumbered the correspondance must be identity 
+    // If the graph is already renumbered the correspondance must be identity
     if(!renumbering) {
-        // Number of nodes in that case is cpt+1 
+        // Number of nodes in that case is cpt+1
         ++cpt;
         for(unsigned int i = 0; i < cpt; ++i)
             correspondance.push_back(i);
@@ -67,8 +66,8 @@ static unsigned int build_map(std::map<std::pair<int,int>, int> &graph, vector<u
         unsigned int src, dest, map_src, map_dest, tmp;
         double weight = 1.f;
 
-        src = elem.first.first;
-        dest = elem.first.second;
+        src = get<0>(elem.first);
+        dest = get<1>(elem.first);
         if (weighted)
             weight = elem.second;
 

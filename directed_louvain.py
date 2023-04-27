@@ -1,6 +1,7 @@
 import spacy
 import directedlouvain as dl
 import networkx as nx
+import timeit
 
 
 def _graph_reference(doc, graph, reference):
@@ -81,16 +82,20 @@ def directed_louvain(filename="text.txt", pipeline="en_core_web_sm"):
     text = _read_text(filename)
     doc = nlp(text)
 
-    graph = dl.mymap()
+    start = timeit.default_timer()
+    graph = dict()
     reference = dict()
 
     _graph_reference(doc, graph, reference)
     _write_graph(graph)
 
+    # 0.17 louvain et run avec une dl.map
     louvain = dl.Community(graph, weighted=True, gamma=55)
     community = _community_of_words(louvain.run(), reference)
     print(community)
     print("Community average size: " + str(len(reference)/len(community)))
+    stop = timeit.default_timer()
+    print('Time: ', stop - start)
 
 
 def _parseArgs():
