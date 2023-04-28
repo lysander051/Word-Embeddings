@@ -78,7 +78,7 @@ class Community {
          * \sa Graph()
          */
         Community (
-                std::map<std::tuple<int, int>,int> graph,
+                std::map<std::tuple<int, int>,int> &graph,
                 bool weighted=false, 
                 const double precision=0.0001,
                 const double gamma=1,

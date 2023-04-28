@@ -8,7 +8,7 @@
 static unsigned int renumber_communities(const Community &c, vector< int > &renumber);
 static void update_levels(const Community &c, vector< vector<int> > &levels, int level);
 
-Community::Community(std::map<std::tuple<int, int>,int> graph, bool weighted, const double precision, const double gamma, bool reproducibility, bool renumbering, bool sorted) {
+Community::Community(std::map<std::tuple<int, int>,int> &graph, bool weighted, const double precision, const double gamma, bool reproducibility, bool renumbering, bool sorted) {
     this->g                 = new Graph(graph, weighted, reproducibility, renumbering);
     this->precision         = precision;
     this->gamma             = gamma;

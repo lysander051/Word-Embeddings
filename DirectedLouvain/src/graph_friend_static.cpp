@@ -32,7 +32,7 @@ static inline unsigned int get_mapped_node(unsigned long int node, const vector<
 
 // This function builds the map for renumbering the input graph and returns cpt (the number of nodes)
 // If reproducibility is set to true, the renumbered graph is written into a file under edgelist format: src dest (weight)
-static unsigned int build_map(std::map<std::tuple<int, int>,int> graph, vector<unsigned long> &correspondance, vector<vector<pair<unsigned int,double> > > &LOUT, vector<vector<pair<unsigned int,double> > > &LIN, bool weighted, bool renumbering, bool reproducibility, bool verbose) {
+static unsigned int build_map(std::map<std::tuple<int, int>,int> &graph, vector<unsigned long> &correspondance, vector<vector<pair<unsigned int,double> > > &LOUT, vector<vector<pair<unsigned int,double> > > &LIN, bool weighted, bool renumbering, bool reproducibility, bool verbose) {
     vector<int> corres(MAP_LIMIT,-1);
     map < unsigned long, unsigned int > corres_big_ids;
     if(renumbering && verbose)
