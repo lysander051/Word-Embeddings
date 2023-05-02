@@ -67,8 +67,17 @@ class Graph {
          * \param renumbering       boolean value indicating whether the graph must be renumbered
          * \param verbose           boolean value indicating whether to print information
          */
+        Graph(string filename, bool weighted, bool reproducibility, bool renumbering, bool verbose=false);
+        //! Constructor with arguments
+        /*!
+         * \param filename          the file to read the graph from
+         * \param weighted          boolean value indicating whether the graph is weighted
+         * \param reproducibility   boolean value indicating whether to write the renumbered graph on hard drive (readable format)
+         * \param renumbering       boolean value indicating whether the graph must be renumbered
+         * \param verbose           boolean value indicating whether to print information
+         */
         Graph(std::map<std::tuple<int, int>,int> &graph, bool weighted, bool reproducibility, bool renumbering, bool verbose=false);
-        //! Friend method to initialize all attributes 
+        //! Friend method to initialize all attributes
         /*!
          * \param g the Graph object to initialize
          * \param LOUT adjacency list for outcoming arcs
@@ -82,6 +91,20 @@ class Graph {
          * \param g the Graph object to be copied
          */ 
         Graph (const Graph &g);
+
+        //! Member function loading and initializing Graph object from binary file under [CSR](https://github.com/nicolasdugue/DirectedLouvain/tree/c+%2B11#CSR) format
+        /*!
+         * \param filename path (absolute or relative) to the ".bin" file
+         * \param verbose           boolean value indicating whether to print information
+         */
+        void load(string filename, bool verbose=false); 
+        //! Member function writing Graph object into binary file ".bin" under [CSR](https://github.com/nicolasdugue/DirectedLouvain/tree/c+%2B11#CSR) format
+        /*! 
+         * \param filename path (absolute or relative) to the ".bin" file
+         */
+        void write(string filename);
+        //! Member function printing the Graph object in edgelist format on standard output
+        void display() const;
 
         //! Member function returning the weight (if weighted) or number (else) of self loops of the node
         /*!

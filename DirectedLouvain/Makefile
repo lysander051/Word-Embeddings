@@ -26,6 +26,9 @@ directories:
 community : $(OBJ1) $(SRC:$(SRCDIR)/%.cpp=$(LIBDIR)/main.o)
 	$(CC)  -o $(BINDIR)/$@ $^ $(LDFLAGS)
 
+hierarchy : $(SRC:$(SRCDIR)/%.cpp=$(LIBDIR)/hierarchy.o)
+	$(CC)  -o $(BINDIR)/$@ $^ $(LDFLAGS)
+
 ##########################################
 # Generic rules
 ##########################################

@@ -8,6 +8,14 @@
 static unsigned int renumber_communities(const Community &c, vector< int > &renumber);
 static void update_levels(const Community &c, vector< vector<int> > &levels, int level);
 
+Community::Community(const string& in_filename, bool weighted, const double precision, const double gamma, bool reproducibility, bool renumbering, bool sorted) {
+    this->g                 = new Graph(in_filename, weighted, reproducibility, renumbering);
+    this->precision         = precision;
+    this->gamma             = gamma;
+    this->sorted            = sorted;
+    init_attributes();
+}
+
 Community::Community(std::map<std::tuple<int, int>,int> &graph, bool weighted, const double precision, const double gamma, bool reproducibility, bool renumbering, bool sorted) {
     this->g                 = new Graph(graph, weighted, reproducibility, renumbering);
     this->precision         = precision;
@@ -36,6 +44,51 @@ void Community::init_attributes() {
 Community::~Community() {
     delete this->g;
     delete this->community_graph;
+}
+
+
+/* FIXME: this needs to be tested! */
+void Community::init_partition(string filename) {
+    ifstream finput;
+    finput.open(filename, fstream:: in);
+    assert(finput.rdstate() == ios::goodbit);
+
+    unsigned int node, comm;
+    while (finput >> node >> comm) {
+        vector<unsigned int> positions_neighboring_communities(this->size);
+        vector<double> neighbor_weight(this->size, -1);
+
+        int old_comm = this->node_to_community[node];
+        unsigned int neighboring_communities = 0;
+        list_neighboring_communities(node, *this, neighbor_weight, positions_neighboring_communities, neighboring_communities);
+
+        remove(*this, node, old_comm, neighbor_weight[old_comm], (this->g)->weighted_out_degree(node), (this->g)->weighted_in_degree(node));
+
+        unsigned int best_community  = 0; 
+        double best_nbarcs      = 0.;
+        unsigned int i;
+
+        for(i = 0 ; i < size; ++i) {
+            best_community   = positions_neighboring_communities[i];
+            best_nbarcs = neighbor_weight[positions_neighboring_communities[i]];
+            if (best_community == comm) {
+                insert(*this, node, best_community, best_nbarcs, (this->g)->weighted_out_degree(node), (this->g)->weighted_in_degree(node));
+                break;
+            }
+        }
+
+        if (i == neighboring_communities)
+            insert(*this, node, comm, 0.f, (this->g)->weighted_out_degree(node), (this->g)->weighted_in_degree(node));
+    }
+    finput.close();
+}
+
+void Community::display() {
+    for (unsigned int i = 0; i < size; ++i)
+        cout << " " << (this->g)->correspondance[i] << "/" << node_to_community[i] << "/" 
+             << this->communities_arcs[i].total_arcs_inside << "/" 
+             << this->communities_arcs[i].total_outcoming_arcs << "/" << this->communities_arcs[i].total_incoming_arcs;
+    cout << endl;
 }
 
 double Community::modularity() {
@@ -184,6 +237,7 @@ bool Community::one_level(double &modularity) {
     do {
         nb_moves = 0;
         delta = 0.;
+
         // For each node: remove it from its community and insert it in the best community (if any)
         for (unsigned int node_tmp = 0; node_tmp < size; ++node_tmp) {
             int node = random_order[node_tmp];
@@ -229,11 +283,16 @@ bool Community::one_level(double &modularity) {
         // Computing the difference between the two modularities
         current_modularity = delta + current_modularity;
         // Printing modularity function and modularity increases
+        cerr << current_modularity << " " << this->modularity() << endl;
 
     } while (nb_moves > 0 && delta > precision);
 
     modularity = current_modularity;
     return improvement;
+}
+
+map<int, int> Community::get_last_level(){
+    return get_level(levels.size()-1);
 }
 
 map<int, int> Community::get_level(int level){
@@ -268,12 +327,14 @@ void Community::print_level(int level) {
         cout << (this->g)->correspondance[node] << " " << n2c[node] << endl;
 }
 
-map<int,int> Community::run(bool verbose, const int& display_level) {
+int Community::run(bool verbose, const int& display_level, const string& filename_part) {
     int level = 0;
     double mod = this->modularity();
     vector < int > corres(0);
 
     bool improvement = true;
+    if (filename_part != "")
+        this->init_partition(filename_part);
     this->community_graph   = new Graph(*(this->g));
     this->init_attributes();
     do {
@@ -291,7 +352,7 @@ map<int,int> Community::run(bool verbose, const int& display_level) {
         // Maintaining levels
         levels.resize(++level);
         update_levels(*this, levels, level-1);
-        if ((level == display_level || display_level == -1) && verbose)
+        if (level == display_level || display_level == -1)
             this->display_partition();
         // Updating the graph to computer hierarchical structure
         this->partition_to_graph();
@@ -299,10 +360,16 @@ map<int,int> Community::run(bool verbose, const int& display_level) {
             cerr << "  modularity increased from " << mod << " to " << new_mod << endl;
 
         mod = new_mod;
+        // Doing at least one more computation if partition is provided
+        if (filename_part != "" && level == 1) 
+            improvement = true;
     } while (improvement);
-    if (display_level == -2 && verbose)
+    if (display_level == -2)
         print_level(levels.size()-1);
-    return get_level(levels.size()-1);
+    for (const auto& kv : levels) {
+        std::cerr << kv.size() <<  std::endl;
+    }
+    return level;
 }
 
 // Friend and static functions are defered to a different file for readability 

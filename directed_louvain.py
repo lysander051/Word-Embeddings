@@ -1,6 +1,5 @@
 import spacy
 import directedlouvain as dl
-import networkx as nx
 import timeit
 
 
@@ -64,7 +63,7 @@ def _write_graph(graph):
     """
     file = open("graph_text.txt", "w")
     for head, tail in graph:
-        file.write(str(head) + " " + str(tail) + " " +  "\n")
+        file.write(str(head) + " " + str(tail) + " " + str(graph[(head, tail)]) + "\n")
     file.close()
 
 
@@ -91,9 +90,10 @@ def directed_louvain(filename="text.txt", pipeline="en_core_web_sm"):
 
     # 0.17 louvain et run avec une dl.map
     louvain = dl.Community(graph, weighted=True, gamma=55)
-    community = _community_of_words(louvain.run(), reference)
+    louvain.run()
+    community = _community_of_words(louvain.last_level(), reference)
     print(community)
-    print("Community average size: " + str(len(reference)/len(community)))
+    print("Community average size: " + str(len(reference) / len(community)))
     stop = timeit.default_timer()
     print('Time: ', stop - start)
 
