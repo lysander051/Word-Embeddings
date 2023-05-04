@@ -1,101 +1,151 @@
-import spacy
+import spacy, scipy
 import directedlouvain as dl
+import networkx as nx
+import networkit
 import timeit
+import pickle
 
 
-def _graph_reference(doc, graph, reference):
-    """
-    Transform a doc type into a graph and word referencer
-
-    :param doc: a parsed list of word into doc type
-    :param graph: an empty dictionary to get back the graph
-    :param reference: an empty dictionary to get back a word to int reference
-    """
-    numbering = 0
-    for token in doc:
-        if token.dep_ != "ROOT":
-            if token.head.text not in reference:
-                reference[token.head.text] = numbering
-                numbering += 1
-            if token.text not in reference:
-                reference[token.text] = numbering
-                numbering += 1
-            if (reference[token.head.text], reference[token.text]) in graph:
-                graph[(reference[token.head.text], reference[token.text])] += 1
-            else:
-                graph[(reference[token.head.text], reference[token.text])] = 1
-
-
-def _community_of_words(community, reference):
-    """
-    Use the reference dictionary to return a dictionary of words to community with the community parameter.
-
-    :param community: a dictionary of type int, int that associate words to community
-    :param reference: a dictionary of word to int
-    :return: a dictionary of community to words
-    """
-    correspondence = dict()
-    for word, index in reference.items():
-        comm = community[index]
-        correspondence.setdefault(comm, []).append(word)
-    return correspondence
-
-
-def _read_text(fileToRead):
-    """
-    Read a .txt file and return a string with his content
-
-    :param fileToRead: The path to the file to read
-    :return: A string of the file
-    """
-    file = open(fileToRead, "r")
-    text = file.read()
-    text = text.lower()
-    file.close()
-    return text
-
-
-def _write_graph(graph):
-    """
-    Export a graph as a .txt format file
-
-    :param graph: graph to export
-    """
-    file = open("graph_text.txt", "w")
-    for head, tail in graph:
-        file.write(str(head) + " " + str(tail) + " " + str(graph[(head, tail)]) + "\n")
-    file.close()
-
-
-def directed_louvain(filename="text.txt", pipeline="en_core_web_sm"):
-    """
-    Use the directed version of the louvain algorythme to analyse the text file.
-
-    :param filename: Path to the text file to analyse.
-    :param pipeline: Specify the spacy pipeline to use.
-
-    See also:
-    `Spacy homepage <https://spacy.io/models>`_
-    """
-    nlp = spacy.load(pipeline)
-    text = _read_text(filename)
-    doc = nlp(text)
-
-    start = timeit.default_timer()
+class DirectedLouvain:
     graph = dict()
     reference = dict()
+    doc = None
+    louvain = None
 
-    _graph_reference(doc, graph, reference)
-    _write_graph(graph)
+    def __init__(self, text="text.txt", pipeline="en_core_web_sm"):
+        """
+        Use the directed version of the louvain algorythme to analyse the text file.
 
-    # 0.17 louvain et run avec une dl.map
-    louvain = dl.Community(graph, weighted=True, gamma=55)
-    louvain.run()
-    community = _community_of_words(louvain.last_level(), reference)
-    print(community)
-    print("Community average size: " + str(len(reference) / len(community)))
-    stop = timeit.default_timer()
-    print('Time: ', stop - start)
+        :param text: Path to the text file to analyse.
+        :param pipeline: Specify the spacy pipeline to use.
+
+        See also:
+        `Spacy homepage <https://spacy.io/models>`_
+        """
+        nlp = spacy.load(pipeline)
+
+        if isinstance(text, str):
+            text_str = self._read_text(text)
+        else:
+            text_str = self._read_list(text)
+
+        self.doc = nlp(text_str)
+        self._graph_reference()
+        self._write_graph()
+
+        start = timeit.default_timer()
+        self.louvain = dl.Community(self.graph, weighted=True, gamma=55)
+        self.louvain.run(verbose=False)
+        stop = timeit.default_timer()
+        print('Time: ', stop - start)
+
+        self._save_data()
+
+    def get_community(self):
+        """
+        Create a networkit graph community to feed the extract_embeddings function of the sinr library
+
+        :return: a networkit type community graph
+        """
+        communities = self.louvain.last_level()
+        partition = networkit.Partition(len(self._get_networkx_graph()))
+        for node, community in communities.items():
+            partition.addToSubset(community, node)
+        return partition
+
+    def load_data(self):
+        """
+        load the data.pk file to return a matrix of the graph and a dictionary(word to node)
+
+        :return: the graph as a matrix and the dictionary
+        """
+        dico = []
+        matrix = []
+        with open("data.pk", "rb") as savefile:
+            dico, matrix = pickle.load(savefile)
+        return matrix, dico
+
+    def _save_data(self):
+        """
+        save the graph as a matrix and the word dictionary in the data.pk file
+        """
+        filename = "data.pk"
+        with open(filename, 'wb') as savefile:
+            pickle.dump((self.reference, scipy.sparse._coo.coo_matrix(nx.to_scipy_sparse_array(self._get_networkx_graph()))),
+                        savefile,
+                        protocol=pickle.HIGHEST_PROTOCOL)
+        return filename
+
+    def _get_networkx_graph(self):
+        """
+        Create a graph under the networkx format
+
+        :return: a networkx graph of the analyze graph
+        """
+        return nx.read_weighted_edgelist("graph_text.txt", nodetype=int, create_using=nx.DiGraph)
+
+    def _graph_reference(self):
+        """
+        Transform a doc type into a graph and dictionary referencer
+        """
+        numbering = 0
+        for token in self.doc:
+            if token.dep_ != "ROOT":
+                if token.head.text not in self.reference:
+                    self.reference[token.head.text] = numbering
+                    numbering += 1
+                if token.text not in self.reference:
+                    self.reference[token.text] = numbering
+                    numbering += 1
+                if (self.reference[token.head.text], self.reference[token.text]) in self.graph:
+                    self.graph[(self.reference[token.head.text], self.reference[token.text])] += 1
+                else:
+                    self.graph[(self.reference[token.head.text], self.reference[token.text])] = 1
+
+    def _community_of_words(self, community, reference):
+        """
+        Use the reference dictionary to return a dictionary of words to community with the community parameter.
+
+        :return: a dictionary of community to words
+        """
+        correspondence = dict()
+        for word, index in reference.items():
+            comm = community[index]
+            correspondence.setdefault(comm, []).append(word)
+        return correspondence
+
+    def _read_text(self, fileToRead):
+        """
+        Read a .txt file and return a string with his content
+
+        :return: A string of the file
+        """
+        file = open(fileToRead, "r")
+        text = file.read()
+        text = text.lower()
+        file.close()
+        return text
+
+    def _read_list(self, listToRead):
+        """
+        Read a .txt file and return a string with his content
+
+        :return: A string of the file
+        """
+        str = ""
+        for i in listToRead:
+            for j in i:
+                str = str + j + " "
+        return str
+
+    def _write_graph(self):
+        """
+        Export a graph as a .txt format file
+        """
+        file = open("graph_text.txt", "w")
+        for head, tail in self.graph:
+            file.write(str(head) + " " + str(tail) + " " + str(self.graph[(head, tail)]) + "\n")
+        file.close()
 
 
 def _parseArgs():
@@ -119,6 +169,4 @@ if __name__ == '__main__':
     args = _parseArgs()
     filename = args.f[0] if args.f else "text.txt"
     pipeline = args.p[0] if args.p else "en_core_web_sm"
-    directed_louvain(filename=filename, pipeline=pipeline)
-
-
+    DirectedLouvain(text="text.txt", pipeline=pipeline)
