@@ -29,10 +29,12 @@ class DirectedLouvain:
         else:
             text_str = self._read_list(text)
 
+        # make and write the graph inside the graph_text.txt file and generate a dictionary of words to nodes
         self.doc = nlp(text_str)
         self._graph_reference()
         self._write_graph()
 
+        # calcul communities
         start = timeit.default_timer()
         self.louvain = dl.Community(self.graph, weighted=True, gamma=gamma)
         self.louvain.run(verbose=False)
@@ -41,6 +43,7 @@ class DirectedLouvain:
         print("Average community size: " + str(len(self.reference) / len(community)))
         print('Time for community detection: ', stop - start)
 
+        # save the matrix and dictionary inside the data.pk file
         self._save_data()
 
     def get_community(self):
@@ -163,7 +166,7 @@ def _parseArgs():
                         help='The path to the name of the file to read')
     parser.add_argument('-p', type=str, nargs=1, required=False,
                         help='The spacy pipeline to use')
-    parser.add_argument('-g', type=int, nargs=1, required=False,
+    parser.add_argument('-g', type=float, nargs=1, required=False,
                         help='The gamma to use to build smaller or bigger community')
     args = parser.parse_args()
     return args
@@ -173,5 +176,5 @@ if __name__ == '__main__':
     args = _parseArgs()
     filename = args.f[0] if args.f else "text.txt"
     pipeline = args.p[0] if args.p else "en_core_web_sm"
-    gamma    = args.g[0] if args.p else 55
-    DirectedLouvain(text="text.txt", pipeline=pipeline, gamma=55)
+    gamma    = args.g[0] if args.g else 55
+    DirectedLouvain(text="text.txt", pipeline=pipeline, gamma=gamma)
