@@ -37,7 +37,9 @@ class DirectedLouvain:
         self.louvain = dl.Community(self.graph, weighted=True, gamma=gamma)
         self.louvain.run(verbose=False)
         stop = timeit.default_timer()
-        print('Time: ', stop - start)
+        community = self._community_of_words(self.louvain.last_level(), self.reference)
+        print("Average community size: " + str(len(self.reference) / len(community)))
+        print('Time for community detection: ', stop - start)
 
         self._save_data()
 
@@ -161,6 +163,8 @@ def _parseArgs():
                         help='The path to the name of the file to read')
     parser.add_argument('-p', type=str, nargs=1, required=False,
                         help='The spacy pipeline to use')
+    parser.add_argument('-g', type=int, nargs=1, required=False,
+                        help='The gamma to use to build smaller or bigger community')
     args = parser.parse_args()
     return args
 
@@ -169,4 +173,5 @@ if __name__ == '__main__':
     args = _parseArgs()
     filename = args.f[0] if args.f else "text.txt"
     pipeline = args.p[0] if args.p else "en_core_web_sm"
-    DirectedLouvain(text="text.txt", pipeline=pipeline)
+    gamma    = args.g[0] if args.p else 55
+    DirectedLouvain(text="text.txt", pipeline=pipeline, gamma=55)
