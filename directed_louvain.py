@@ -12,7 +12,7 @@ class DirectedLouvain:
     doc = None
     louvain = None
 
-    def __init__(self, text="text.txt", pipeline="en_core_web_sm"):
+    def __init__(self, text="text.txt", pipeline="en_core_web_sm", gamma=55):
         """
         Use the directed version of the louvain algorythme to analyse the text file.
 
@@ -34,7 +34,7 @@ class DirectedLouvain:
         self._write_graph()
 
         start = timeit.default_timer()
-        self.louvain = dl.Community(self.graph, weighted=True, gamma=55)
+        self.louvain = dl.Community(self.graph, weighted=True, gamma=gamma)
         self.louvain.run(verbose=False)
         stop = timeit.default_timer()
         print('Time: ', stop - start)
