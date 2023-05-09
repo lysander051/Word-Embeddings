@@ -212,7 +212,7 @@ void Community::partition_to_graph() {
     }
 }
 
-bool Community::one_level(double &modularity) {
+bool Community::one_level(bool verbose, double &modularity) {
     int nb_moves = 0;
     bool improvement = false;
     double current_modularity = this->modularity();
@@ -283,7 +283,8 @@ bool Community::one_level(double &modularity) {
         // Computing the difference between the two modularities
         current_modularity = delta + current_modularity;
         // Printing modularity function and modularity increases
-        cerr << current_modularity << " " << this->modularity() << endl;
+        if(verbose)
+            cerr << current_modularity << " " << this->modularity() << endl;
 
     } while (nb_moves > 0 && delta > precision);
 
@@ -348,11 +349,11 @@ int Community::run(bool verbose, const int& display_level, const string& filenam
 
         // Directed Louvain: main procedure
         double new_mod = 0;
-        improvement = this->one_level(new_mod);
+        improvement = this->one_level(verbose, new_mod);
         // Maintaining levels
         levels.resize(++level);
         update_levels(*this, levels, level-1);
-        if (level == display_level || display_level == -1)
+        if ((level == display_level || display_level == -1) && verbose)
             this->display_partition();
         // Updating the graph to computer hierarchical structure
         this->partition_to_graph();
@@ -364,11 +365,11 @@ int Community::run(bool verbose, const int& display_level, const string& filenam
         if (filename_part != "" && level == 1) 
             improvement = true;
     } while (improvement);
-    if (display_level == -2)
+    if (display_level == -2 && verbose)
         print_level(levels.size()-1);
-    for (const auto& kv : levels) {
-        std::cerr << kv.size() <<  std::endl;
-    }
+    if(verbose)
+        for (const auto& kv : levels)
+            std::cerr << kv.size() <<  std::endl;
     return level;
 }
 

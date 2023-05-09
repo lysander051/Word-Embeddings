@@ -73,7 +73,7 @@ class Community {
          * \return true if some nodes have been moved 
          * \sa modularity_gain()
          */
-        bool one_level(double &modularity);
+        bool one_level(bool verbose, double &modularity);
     public:
         //! Constructor from edgelist format (initializes Graph object)
         /*! 

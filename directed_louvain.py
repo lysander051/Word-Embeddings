@@ -29,7 +29,7 @@ class DirectedLouvain:
         else:
             text_str = self._read_list(text)
 
-        # make and write the graph inside the graph_text.txt file and generate a dictionary of words to nodes
+        # make and write the graph inside the graph.txt file and generate a dictionary of words to nodes
         self.doc = nlp(text_str)
         self._graph_reference()
         self._write_graph()
@@ -87,7 +87,7 @@ class DirectedLouvain:
 
         :return: a networkx graph of the analyze graph
         """
-        return nx.read_weighted_edgelist("graph_text.txt", nodetype=int, create_using=nx.DiGraph)
+        return nx.read_weighted_edgelist("graph.txt", nodetype=int, create_using=nx.DiGraph)
 
     def _graph_reference(self):
         """
@@ -119,16 +119,15 @@ class DirectedLouvain:
             correspondence.setdefault(comm, []).append(word)
         return correspondence
 
-    def _read_text(self, fileToRead):
+    def _read_text(self, filename):
         """
         Read a .txt file and return a string with his content
 
         :return: A string of the file
         """
-        file = open(fileToRead, "r")
-        text = file.read()
+        with open(filename, 'r') as file:
+            text = file.read()
         text = text.lower()
-        file.close()
         return text
 
     def _read_list(self, listToRead):
@@ -147,10 +146,9 @@ class DirectedLouvain:
         """
         Export a graph as a .txt format file
         """
-        file = open("graph_text.txt", "w")
-        for head, tail in self.graph:
-            file.write(str(head) + " " + str(tail) + " " + str(self.graph[(head, tail)]) + "\n")
-        file.close()
+        with open("graph.txt", "w") as file:
+            for head, tail in self.graph:
+                file.write(str(head) + " " + str(tail) + " " + str(self.graph[(head, tail)]) + "\n")
 
 
 def _parseArgs():
