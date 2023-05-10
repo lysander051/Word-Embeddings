@@ -27,12 +27,12 @@ to use this project.
 You can find more information on this link: [https://spacy.io/usage](https://spacy.io/usage)
 
 <u>**Compilation:**</u>   
-To use this project you should creat a file inside the 
-DirectedLouvain folder.   
+To use this project you should creat a folder (for instance `build`) inside the 
+`DirectedLouvain/python-binding` folder.   
 Inside this file you will compile the code to produce a python library,
 to do so you should execute the command: 
 
-    ../cmake python-binding
+    cmake ../python-binding
 
 then:
 
