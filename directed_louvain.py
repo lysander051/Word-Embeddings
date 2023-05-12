@@ -14,7 +14,7 @@ class DirectedLouvain:
 
     def __init__(self, text="text.txt", pipeline="en_core_web_sm", gamma=55, verbose=False):
         """
-        Use the directed version of the louvain algorythme to analyse the text file.
+        Uses the directed version of the louvain algorithm to analyse the text file.
 
         :param text: Path to the text file to analyse.
         :param pipeline: Specify the spacy pipeline to use.
@@ -29,12 +29,12 @@ class DirectedLouvain:
         else:
             text_str = self._read_list(text)
 
-        # make and write the graph inside the graph_text.txt file and generate a dictionary of words to nodes
+        # make and write the graph inside the graph.txt file and generate a dictionary of words to nodes
         self.doc = nlp(text_str)
         self._graph_reference()
         self._write_graph()
 
-        # calcul communities
+        # computing communities
         start = timeit.default_timer()
         self.louvain = dl.Community(self.graph, weighted=True, gamma=gamma)
         self.louvain.run(verbose)
@@ -48,7 +48,7 @@ class DirectedLouvain:
 
     def get_community(self):
         """
-        Create a networkit graph community to feed the extract_embeddings function of the sinr library
+        Creates a networkit Partition (i.e. community) to feed the extract_embeddings function of the SINr library
 
         :return: a networkit type community graph
         """
@@ -58,40 +58,45 @@ class DirectedLouvain:
             partition.addToSubset(community, node)
         return partition
 
+    # TODO --- passer le nom du fichier en argument avec valeur par défaut
     def load_data(self):
         """
-        load the data.pk file to return a matrix of the graph and a dictionary(word to node)
+        Loads the data.pk file to return an adjacency matrix of the graph and a dictionary (word to node)
 
         :return: the graph as a matrix and the dictionary
         """
-        dico = []
-        matrix = []
+        dico = dict()
+        matrix = list()
         with open("data.pk", "rb") as savefile:
             dico, matrix = pickle.load(savefile)
         return matrix, dico
 
+    # TODO --- passer le nom du fichier en argument avec valeur par défaut
     def _save_data(self):
         """
-        save the graph as a matrix and the word dictionary in the data.pk file
+        Saves the graph as an adjacency matrix and the word-to-node dictionary in the data.pk file
         """
         filename = "data.pk"
         with open(filename, 'wb') as savefile:
-            pickle.dump((self.reference, scipy.sparse._coo.coo_matrix(nx.to_scipy_sparse_array(self._get_networkx_graph()))),
+            pickle.dump((self.reference,
+                        scipy.sparse._coo.coo_matrix(nx.to_scipy_sparse_array(self._get_networkx_graph()))),
                         savefile,
                         protocol=pickle.HIGHEST_PROTOCOL)
         return filename
 
+    # TODO --- passer le nom du fichier en argument avec valeur par défaut
     def _get_networkx_graph(self):
         """
-        Create a graph under the networkx format
+        Creates a graph under the networkx format
 
-        :return: a networkx graph of the analyze graph
+        :return: a networkx graph of the graph
         """
-        return nx.read_weighted_edgelist("sinr/graph_text.txt", nodetype=int, create_using=nx.DiGraph)
+        return nx.read_weighted_edgelist("graph.txt", nodetype=int, create_using=nx.DiGraph)
 
+    # TODO --- remplacer le if/else par un setdefault (voir _community_of_words)
     def _graph_reference(self):
         """
-        Transform a doc type into a graph and dictionary referencer
+        Transform a doc type into a graph and a word-to-node dictionary
         """
         numbering = 0
         for token in self.doc:
@@ -109,7 +114,7 @@ class DirectedLouvain:
 
     def _community_of_words(self, community, reference):
         """
-        Use the reference dictionary to return a dictionary of words to community with the community parameter.
+        Uses the reference dictionary to return a dictionary of words to community with the community parameter.
 
         :return: a dictionary of community to words
         """
@@ -119,21 +124,22 @@ class DirectedLouvain:
             correspondence.setdefault(comm, []).append(word)
         return correspondence
 
-    def _read_text(self, fileToRead):
+    def _read_text(self, filename):
         """
-        Read a .txt file and return a string with his content
+        Reads a .txt file and return a string with its content
 
         :return: A string of the file
         """
-        file = open(fileToRead, "r")
-        text = file.read()
+        with open(filename, 'r') as file:
+            text = file.read()
         text = text.lower()
         file.close()
         return text
 
+    # NOTE --- attention str est un type en python, il faut changer le nom de la variable
     def _read_list(self, listToRead):
         """
-        Read a .txt file and return a string with his content
+        Reads a .txt file and return a string with its content
 
         :return: A string of the file
         """
@@ -143,21 +149,21 @@ class DirectedLouvain:
                 str = str + j + " "
         return str
 
+    # TODO --- passer le nom du fichier en argument avec valeur par défaut
     def _write_graph(self):
         """
-        Export a graph as a .txt format file
+        Exports a graph as a .txt format file
         """
-        file = open("sinr/graph_text.txt", "w")
-        for head, tail in self.graph:
-            file.write(str(head) + " " + str(tail) + " " + str(self.graph[(head, tail)]) + "\n")
-        file.close()
+        with open("graph.txt", "w") as file:
+            for head, tail in self.graph:
+                file.write(str(head) + " " + str(tail) + " " + str(self.graph[(head, tail)]) + "\n")
 
 
 def _parseArgs():
     """
-    Parse arguments when this library is use as a main.
+    Parses arguments when this library is used as a main.
 
-    :return: A list of args is return
+    :return: A list of args is returned
     """
     import argparse
     parser = argparse.ArgumentParser(prog='directed_louvain.py',
