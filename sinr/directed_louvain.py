@@ -1,3 +1,4 @@
+#!/usr/bin/env
 import spacy, scipy
 import directedlouvain as dl
 import networkx as nx
@@ -5,14 +6,13 @@ import networkit
 import timeit
 import pickle
 
-
 class DirectedLouvain:
     graph = dict()
     reference = dict()
     doc = None
     louvain = None
 
-    def __init__(self, text="text.txt", pipeline="en_core_web_sm", gamma=55):
+    def __init__(self, text="text.txt", pipeline="en_core_web_sm", gamma=55, verbose=False):
         """
         Use the directed version of the louvain algorythme to analyse the text file.
 
@@ -37,7 +37,7 @@ class DirectedLouvain:
         # calcul communities
         start = timeit.default_timer()
         self.louvain = dl.Community(self.graph, weighted=True, gamma=gamma)
-        self.louvain.run(verbose=False)
+        self.louvain.run(verbose)
         stop = timeit.default_timer()
         community = self._community_of_words(self.louvain.last_level(), self.reference)
         print("Average community size: " + str(len(self.reference) / len(community)))
@@ -87,7 +87,7 @@ class DirectedLouvain:
 
         :return: a networkx graph of the analyze graph
         """
-        return nx.read_weighted_edgelist("graph_text.txt", nodetype=int, create_using=nx.DiGraph)
+        return nx.read_weighted_edgelist("sinr/graph_text.txt", nodetype=int, create_using=nx.DiGraph)
 
     def _graph_reference(self):
         """
@@ -147,7 +147,7 @@ class DirectedLouvain:
         """
         Export a graph as a .txt format file
         """
-        file = open("graph_text.txt", "w")
+        file = open("sinr/graph_text.txt", "w")
         for head, tail in self.graph:
             file.write(str(head) + " " + str(tail) + " " + str(self.graph[(head, tail)]) + "\n")
         file.close()
@@ -168,6 +168,7 @@ def _parseArgs():
                         help='The spacy pipeline to use')
     parser.add_argument('-g', type=float, nargs=1, required=False,
                         help='The gamma to use to build smaller or bigger community')
+    parser.add_argument("-v", action="store_true", help="increase output verbosity")
     args = parser.parse_args()
     return args
 
@@ -177,4 +178,5 @@ if __name__ == '__main__':
     filename = args.f[0] if args.f else "text.txt"
     pipeline = args.p[0] if args.p else "en_core_web_sm"
     gamma    = args.g[0] if args.g else 55
-    DirectedLouvain(text="text.txt", pipeline=pipeline, gamma=gamma)
+    verbose  = args.v
+    DirectedLouvain(text=filename, pipeline=pipeline, gamma=gamma, verbose=verbose)
