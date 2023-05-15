@@ -1,0 +1,61 @@
+from sinr.sinr.text.cooccurrence import Cooccurrence
+from sinr.sinr.text.pmi import pmi_filter
+from nltk.corpus import brown
+from nltk.corpus import reuters
+import sinr.sinr.graph_embeddings as ge
+
+c = Cooccurrence()
+c.fit(reuters.sents(), window=10)
+c.matrix = pmi_filter(c.matrix)
+c.save("matrix.pk")
+
+sinr = ge.SINr.load_from_cooc_pkl("matrix.pk")
+communities = sinr.detect_communities(gamma=50)
+sinr.extract_embeddings(communities)
+
+sinr_vectors = ge.ModelBuilder(sinr, "reuters", n_jobs=8, n_neighbors=5).with_embeddings_nr().with_vocabulary().build()
+sinr_vectors.light_model_save() #Cette fonction sauve pas l'objet model, mais directement le dictionnaire mot -> array pour que ce soit évaluable
+
+sinr_vectors_new = ge.SINrVectors("reuters") #déclaration de l'objet sinr avec le nom du .pk du modele
+sinr_vectors_new.load()
+
+import logging
+from six import iteritems
+from web.datasets.similarity import fetch_MEN, fetch_WS353, fetch_SimLex999, fetch_RG65, fetch_MTurk, fetch_RW
+from web.embeddings import load_embedding
+from web.evaluate import evaluate_similarity
+import os
+
+logging.basicConfig(format='%(asctime)s %(levelname)s:%(message)s', level=logging.DEBUG, datefmt='%I:%M:%S')
+
+models = [ "reuters.pk" ]
+###datasets potentiels en similarité
+
+tasks = {
+    "MEN": fetch_MEN(),                          #standard
+    "WS353": fetch_WS353(),                      #standard
+    "WS353R": fetch_WS353(which="relatedness"),
+    "WS353S": fetch_WS353(which="similarity"),   #idéalement les embeddings syntaxiques sont meilleures sur WS353S que WS353R
+    "SIMLEX999": fetch_SimLex999(),             #idéalement également les embeddings syntaxiques sont meilleurs que les embeddings normaux sur celui là
+    "RG65" : fetch_RG65(),                      #mauvais dataset pas significatif
+    "MTURK" : fetch_MTurk(),                    #standard
+    "RW" : fetch_RW()                             #dataset sur les mors rares, vous pouvez regarder mais c'est anecdotique
+}
+
+dataw = []
+
+for m in models :
+    model = load_embedding(m,format='dict',normalize=False)
+    results = []
+
+    # Calculate results using helpewith open('/lium/raid01_c/sguillot/Datasets/BLESS_cosined.csv', 'w') as file :r function
+    for name, data in iteritems(tasks):
+        print("Spearman correlation of scores on {} {}".format(name, evaluate_similarity(model, data.X, data.y)))
+        results.append(evaluate_similarity(model, data.X, data.y))
+    dataw.append(results)
+
+import csv
+with open('recap_similarite.csv', 'w') as file :
+    writer = csv.writer(file, delimiter=';')
+    for d in dataw :
+        writer.writerow(d)
