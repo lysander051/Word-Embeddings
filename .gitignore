@@ -163,3 +163,4 @@ cython_debug/
 *.txt
 *.pk
 *.swp
+*.csv
