@@ -6,9 +6,11 @@ import networkit
 import timeit
 import pickle
 
+from collections import defaultdict
+
 class DirectedLouvain:
-    graph = dict()
-    reference = dict()
+    graph = defaultdict(int)
+    reference = defaultdict(int)
     doc = None
     louvain = None
 
@@ -22,16 +24,24 @@ class DirectedLouvain:
         See also:
         `Spacy homepage <https://spacy.io/models>`_
         """
+        print("loading spacy pipeline...")
         nlp = spacy.load(pipeline)
+        print("done.")
 
         if isinstance(text, str):
             text_str = self._read_text(text)
         else:
             text_str = self._read_list(text)
 
+        print("text of {} characters.".format(len(text_str)))
         # make and write the graph inside the graph.txt file and generate a dictionary of words to nodes
+        print("parsing corpus with spacy...")
+        nlp.max_length = 10000000
         self.doc = nlp(text_str)
+        print("done.")
+        print("building graph...")
         self._graph_reference()
+        print("done.")
         self._write_graph()
 
         # computing communities
@@ -107,10 +117,14 @@ class DirectedLouvain:
                 if token.text not in self.reference:
                     self.reference[token.text] = numbering
                     numbering += 1
+                #self.reference[token.head.text] += 1
+                #self.reference[token.text] += 1
+
                 if (self.reference[token.head.text], self.reference[token.text]) in self.graph:
                     self.graph[(self.reference[token.head.text], self.reference[token.text])] += 1
                 else:
                     self.graph[(self.reference[token.head.text], self.reference[token.text])] = 1
+                #self.graph[(self.reference[token.head.text], self.reference[token.text])] += 1
 
     def _community_of_words(self, community, reference):
         """
@@ -143,11 +157,12 @@ class DirectedLouvain:
 
         :return: A string of the file
         """
-        str = ""
-        for i in listToRead:
-            for j in i:
-                str = str + j + " "
-        return str
+        string = ""
+        for sentence in listToRead:
+            string += " ".join(sentence)
+            '''for j in i:
+                str = str + j + " "'''
+        return string
 
     # TODO --- passer le nom du fichier en argument avec valeur par défaut
     def _write_graph(self):

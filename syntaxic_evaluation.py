@@ -4,19 +4,22 @@ from nltk.corpus import gutenberg
 from nltk.corpus import reuters
 import sinr.sinr.graph_embeddings as ge
 
-c = Cooccurrence()
-c.fit(gutenberg.sents('shakespeare-macbeth.txt'), window=10)
-c.matrix = pmi_filter(c.matrix)
-c.save("matrix.pk")
+import directed_louvain as dl
 
-sinr = ge.SINr.load_from_cooc_pkl("matrix.pk")
-communities = sinr.detect_communities(gamma=50)
+louvain = dl.DirectedLouvain(gutenberg.sents('shakespeare-macbeth.txt'))
+
+# creating the SINr object from matrix and dico
+sinr = ge.SINr.load_from_adjacency_matrix(*louvain.load_data())
+
+# computing communities using Directed Louvain
+communities = louvain.get_community()
+
 sinr.extract_embeddings(communities)
 
 sinr_vectors = ge.ModelBuilder(sinr, "gutenberg", n_jobs=8, n_neighbors=5).with_embeddings_nr().with_vocabulary().build()
 sinr_vectors.light_model_save() #Cette fonction sauve pas l'objet model, mais directement le dictionnaire mot -> array pour que ce soit évaluable
 
-sinr_vectors_new = ge.SINrVectors("gutenberg") #déclaration de l'objet sinr avec le nom du .pk du modele
+sinr_vectors_new = ge.SINrVectors("gutenberg_light") #déclaration de l'objet sinr avec le nom du .pk du modele
 sinr_vectors_new.load()
 
 import logging
@@ -55,7 +58,7 @@ for m in models :
     dataw.append(results)
 
 import csv
-with open('classical_similarity.csv', 'w') as file :
+with open('syntaxic_similarity.csv', 'w') as file :
     writer = csv.writer(file, delimiter=';')
     for d in dataw :
         writer.writerow(d)
