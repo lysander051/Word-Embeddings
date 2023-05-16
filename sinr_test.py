@@ -1,5 +1,10 @@
 import sinr.sinr.graph_embeddings as ge
 import directed_louvain as dl
+
+import nltk
+nltk.download('gutenberg')
+nltk.download('punkt')
+
 from nltk.corpus import gutenberg
 
 louvain = dl.DirectedLouvain(gutenberg.sents('shakespeare-macbeth.txt'))

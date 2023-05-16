@@ -1,11 +1,14 @@
 from sinr.sinr.text.cooccurrence import Cooccurrence
 from sinr.sinr.text.pmi import pmi_filter
-from nltk.corpus import gutenberg
+
+import nltk
+nltk.download('reuters')
+
 from nltk.corpus import reuters
 import sinr.sinr.graph_embeddings as ge
 
 c = Cooccurrence()
-c.fit(gutenberg.sents('shakespeare-macbeth.txt'), window=10)
+c.fit(reuters.sents(), window=10)
 c.matrix = pmi_filter(c.matrix)
 c.save("matrix.pk")
 
@@ -13,10 +16,10 @@ sinr = ge.SINr.load_from_cooc_pkl("matrix.pk")
 communities = sinr.detect_communities(gamma=50)
 sinr.extract_embeddings(communities)
 
-sinr_vectors = ge.ModelBuilder(sinr, "gutenberg", n_jobs=8, n_neighbors=5).with_embeddings_nr().with_vocabulary().build()
+sinr_vectors = ge.ModelBuilder(sinr, "corpus", n_jobs=8, n_neighbors=5).with_embeddings_nr().with_vocabulary().build()
 sinr_vectors.light_model_save() #Cette fonction sauve pas l'objet model, mais directement le dictionnaire mot -> array pour que ce soit évaluable
 
-sinr_vectors_new = ge.SINrVectors("gutenberg") #déclaration de l'objet sinr avec le nom du .pk du modele
+sinr_vectors_new = ge.SINrVectors("corpus_light") #déclaration de l'objet sinr avec le nom du .pk du modele
 sinr_vectors_new.load()
 
 import logging
@@ -28,7 +31,7 @@ import os
 
 logging.basicConfig(format='%(asctime)s %(levelname)s:%(message)s', level=logging.DEBUG, datefmt='%I:%M:%S')
 
-models = [ "gutenberg_light.pk" ]
+models = [ "corpus_light.pk" ]
 ###datasets potentiels en similarité
 
 tasks = {
