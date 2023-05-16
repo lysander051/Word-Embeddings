@@ -17,7 +17,7 @@ PYBIND11_MODULE(directedlouvain, dl) {
                  py::arg("reproducibility") = false, py::arg("renumbering") = true)
             .def(py::init<std::map<std::tuple<int, int>,int> &, bool, const double, const double, bool, bool, bool>(),
                  py::arg("graph"), py::arg("weighted") = false, py::arg("precision") = 0.0001, py::arg("gamma") = 1,
-                 py::arg("reproducibility") = false, py::arg("renumbering") = true, py::arg("random") = true)
+                 py::arg("reproducibility") = false, py::arg("renumbering") = true, py::arg("random") = false)
             .def("run", &Community::run,
                  py::arg("verbose") = false, py::arg("display_level") = -1, py::arg("filename_part") = "",
                  py::call_guard<py::scoped_ostream_redirect,

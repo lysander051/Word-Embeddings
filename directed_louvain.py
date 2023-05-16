@@ -157,9 +157,12 @@ class DirectedLouvain:
         """
         string = ""
         for sentence in listToRead:
-            string += " ".join(sentence)
-            '''for j in i:
-                str = str + j + " "'''
+            tmp = " ".join(sentence)
+            '''tmp = ""
+            for j in sentence:
+                tmp += (j + " ")'''
+            string += (tmp+" ")
+        print(len(string),string[:100])
         return string
 
     # TODO --- passer le nom du fichier en argument avec valeur par défaut
