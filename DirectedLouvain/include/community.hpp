@@ -42,7 +42,7 @@ class Community {
         unsigned int size;                      /*!< Number of nodes in the graph */
         double precision;                       /*!< A real number describing the minimum improvement on modularity to carry on computation */
         double gamma;                           /*!< Define the size of generated clusters. Higher gamma means smaller clusters */
-        bool sorted;                            /*!< Use to shuffle or not the process order of nodes */
+        bool random;                            /*!< Use to shuffle or not the process order of nodes */
 
         vector<int> node_to_community;          /*!< Community to which each node belongs */
         vector< vector<int> > levels;           /*! Hierarchical community structure */
@@ -90,7 +90,7 @@ class Community {
                 const double gamma=1,
                 bool reproducibility=false,
                 bool renumbering=false,
-                bool sorted=true);
+                bool random=true);
 
     //! Constructor from a map of tuple
     /*!
@@ -107,7 +107,7 @@ class Community {
             const double gamma=1,
             bool reproducibility=false,
             bool renumbering=false,
-            bool sorted=true);
+            bool random=true);
     //! Destructor
 
         //! Destructor

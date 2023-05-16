@@ -8,19 +8,19 @@
 static unsigned int renumber_communities(const Community &c, vector< int > &renumber);
 static void update_levels(const Community &c, vector< vector<int> > &levels, int level);
 
-Community::Community(const string& in_filename, bool weighted, const double precision, const double gamma, bool reproducibility, bool renumbering, bool sorted) {
+Community::Community(const string& in_filename, bool weighted, const double precision, const double gamma, bool reproducibility, bool renumbering, bool random) {
     this->g                 = new Graph(in_filename, weighted, reproducibility, renumbering);
     this->precision         = precision;
     this->gamma             = gamma;
-    this->sorted            = sorted;
+    this->random            = random;
     init_attributes();
 }
 
-Community::Community(std::map<std::tuple<int, int>,int> &graph, bool weighted, const double precision, const double gamma, bool reproducibility, bool renumbering, bool sorted) {
+Community::Community(std::map<std::tuple<int, int>,int> &graph, bool weighted, const double precision, const double gamma, bool reproducibility, bool renumbering, bool random) {
     this->g                 = new Graph(graph, weighted, reproducibility, renumbering);
     this->precision         = precision;
     this->gamma             = gamma;
-    this->sorted            = sorted;
+    this->random            = random;
 
     init_attributes();
 }
@@ -225,7 +225,7 @@ bool Community::one_level(bool verbose, double &modularity) {
 
     // ... randomized: (Directed) Louvain's algorithm is not deterministic
     unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
-    if(sorted)
+    if(this->random)
         shuffle(random_order.begin(), random_order.end(), std::default_random_engine(seed));
 
     // Vectors containing weights and positions of neighboring communities
