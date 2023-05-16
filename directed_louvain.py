@@ -117,14 +117,12 @@ class DirectedLouvain:
                 if token.text not in self.reference:
                     self.reference[token.text] = numbering
                     numbering += 1
-                #self.reference[token.head.text] += 1
-                #self.reference[token.text] += 1
 
-                if (self.reference[token.head.text], self.reference[token.text]) in self.graph:
+                '''if (self.reference[token.head.text], self.reference[token.text]) in self.graph:
                     self.graph[(self.reference[token.head.text], self.reference[token.text])] += 1
                 else:
-                    self.graph[(self.reference[token.head.text], self.reference[token.text])] = 1
-                #self.graph[(self.reference[token.head.text], self.reference[token.text])] += 1
+                    self.graph[(self.reference[token.head.text], self.reference[token.text])] = 1'''
+                self.graph[(self.reference[token.head.text], self.reference[token.text])] += 1
 
     def _community_of_words(self, community, reference):
         """
