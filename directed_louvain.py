@@ -25,7 +25,7 @@ class DirectedLouvain:
         `Spacy homepage <https://spacy.io/models>`_
         """
         print("loading spacy pipeline...")
-        nlp = spacy.load(pipeline)
+        nlp = spacy.load(pipeline, disable=["ner"])
         print("done.")
 
         if isinstance(text, str):
