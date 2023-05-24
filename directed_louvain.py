@@ -5,13 +5,14 @@ import networkx as nx
 import networkit
 import timeit
 import pickle
+from tqdm import tqdm
 
 from collections import defaultdict
 
 class DirectedLouvain:
     graph = defaultdict(int)
     reference = defaultdict(int)
-    doc = None
+    doc = []
     louvain = None
 
     def __init__(self, text="text.txt", pipeline="en_core_web_sm", gamma=55, verbose=False):
@@ -25,33 +26,34 @@ class DirectedLouvain:
         `Spacy homepage <https://spacy.io/models>`_
         """
         print("loading spacy pipeline...")
-        nlp = spacy.load(pipeline)
-        print("done.")
+        nlp = spacy.load(pipeline, disable=["ner"])
 
         if isinstance(text, str):
             text_str = self._read_text(text)
         else:
             text_str = self._read_list(text)
+        print("text parsing...")
+        for sentence in tqdm(nlp.pipe(text_str), total=len(text_str)):
+            self.doc.append(sentence)
 
-        print("text of {} characters.".format(len(text_str)))
-        # make and write the graph inside the graph.txt file and generate a dictionary of words to nodes
-        print("parsing corpus with spacy...")
-        nlp.max_length = 10000000
-        self.doc = nlp(text_str)
-        print("done.")
+        # make and write the graph inside the graph.txt file and generate a dictionary of words to node
         print("building graph...")
         self._graph_reference()
+        del nlp
+        del doc
         print("done.")
         self._write_graph()
 
         # computing communities
+        print("community detection...") 
         start = timeit.default_timer()
-        self.louvain = dl.Community(self.graph, weighted=True, gamma=gamma)
+        self.louvain = dl.Community("graph.txt", weighted=True, gamma=gamma)
         self.louvain.run(verbose)
         stop = timeit.default_timer()
         community = self._community_of_words(self.louvain.last_level(), self.reference)
         print("Average community size: " + str(len(self.reference) / len(community)))
         print('Time for community detection: ', stop - start)
+        print("modularity: " + str(self.louvain.modularity()))
 
         # save the matrix and dictionary inside the data.pk file
         self._save_data()
@@ -109,20 +111,21 @@ class DirectedLouvain:
         Transform a doc type into a graph and a word-to-node dictionary
         """
         numbering = 0
-        for token in self.doc:
-            if token.dep_ != "ROOT":
-                if token.head.text not in self.reference:
-                    self.reference[token.head.text] = numbering
-                    numbering += 1
-                if token.text not in self.reference:
-                    self.reference[token.text] = numbering
-                    numbering += 1
+        for sentence in self.doc:
+            for token in sentence:
+                if token.dep_ != "ROOT":
+                    if token.head.text not in self.reference:
+                        self.reference[token.head.text] = numbering
+                        numbering += 1
+                    if token.text not in self.reference:
+                        self.reference[token.text] = numbering
+                        numbering += 1
 
-                '''if (self.reference[token.head.text], self.reference[token.text]) in self.graph:
+                    '''if (self.reference[token.head.text], self.reference[token.text]) in self.graph:
+                        self.graph[(self.reference[token.head.text], self.reference[token.text])] += 1
+                    else:
+                        self.graph[(self.reference[token.head.text], self.reference[token.text])] = 1'''
                     self.graph[(self.reference[token.head.text], self.reference[token.text])] += 1
-                else:
-                    self.graph[(self.reference[token.head.text], self.reference[token.text])] = 1'''
-                self.graph[(self.reference[token.head.text], self.reference[token.text])] += 1
 
     def _community_of_words(self, community, reference):
         """
@@ -155,14 +158,10 @@ class DirectedLouvain:
 
         :return: A string of the file
         """
-        string = ""
+        string = []
         for sentence in listToRead:
             tmp = " ".join(sentence)
-            '''tmp = ""
-            for j in sentence:
-                tmp += (j + " ")'''
-            string += (tmp+" ")
-        print(len(string),string[:100])
+            string.append(tmp)
         return string
 
     # TODO --- passer le nom du fichier en argument avec valeur par défaut
