@@ -1,13 +1,15 @@
-import sinr.graph_embeddings as ge
+import sinr.sinr.graph_embeddings as ge
 import directed_louvain as dl
-import sinr.text.preprocess as ppcs
+import sinr.sinr.text.preprocess as ppcs
 
 import nltk
 nltk.download('gutenberg')
 nltk.download('punkt')
 from nltk.corpus import gutenberg
 
-louvain = dl.DirectedLouvain(ppcs.extract_text("testbnc.vrt", lemmatize=False, min_freq=5, en=True), "en_core_web_lg")
+import sys
+
+louvain = dl.DirectedLouvain(ppcs.extract_text(sys.argv[1], lemmatize=False, min_freq=5, en=True), "en_core_web_lg")
 
 # creating the SINr object from matrix and dico
 sinr = ge.SINr.load_from_adjacency_matrix(*louvain.load_data())
