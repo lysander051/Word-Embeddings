@@ -17,12 +17,12 @@ communities = louvain.get_community()
 sinr.extract_embeddings(communities)
 
 sinr_vectors = ge.InterpretableWordsModelBuilder(sinr, "corpus", n_jobs=8, n_neighbors=5).build()#.with_embeddings_nr().with_vocabulary().build()
-sinr_vectors.save() #Cette fonction sauve pas l'objet model, mais directement le dictionnaire mot -> array pour que ce soit évaluable
+sinr_vectors.light_model_save() #Cette fonction sauve pas l'objet model, mais directement le dictionnaire mot -> array pour que ce soit évaluable
 
-sinr_vectors_new = ge.SINrVectors("corpus") #déclaration de l'objet sinr avec le nom du .pk du modele
+sinr_vectors_new = ge.SINrVectors("corpus_light") #déclaration de l'objet sinr avec le nom du .pk du modele
 sinr_vectors_new.load()
 
-'''import logging
+import logging
 from six import iteritems
 from web.datasets.similarity import fetch_MEN, fetch_WS353, fetch_SimLex999, fetch_RG65, fetch_MTurk, fetch_RW
 from web.embeddings import load_embedding
@@ -61,4 +61,4 @@ import csv
 with open('syntaxic_similarity.csv', 'w') as file :
     writer = csv.writer(file, delimiter=';')
     for d in dataw :
-        writer.writerow(d)'''
+        writer.writerow(d)
