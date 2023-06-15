@@ -5,8 +5,8 @@ from sinr.sinr.text.pmi import pmi_filter
 import directed_louvain as dl
 import sys
 
-louvain = dl.DirectedLouvain("chat.txt", gamma=50)
-louvain.save_data()
+louvain = dl.DirectedLouvain(ppcs.extract_text(sys.argv[1], lemmatize=True, lower_words=True, number=False, punct=False, en=True, min_freq=1, alpha=True, min_length_word=1), gamma=1000)
+louvain._save_data()
 
 # creating the SINr object from matrix and dico
 sinr = ge.SINr.load_from_adjacency_matrix(*louvain.load_data())
@@ -21,8 +21,6 @@ sinr_vectors.save() #Cette fonction sauve pas l'objet model, mais directement le
 
 sinr_vectors_new = ge.SINrVectors("corpus") #déclaration de l'objet sinr avec le nom du .pk du modele
 sinr_vectors_new.load()
-
-print(sinr_vectors_new.vocab)
 
 '''import logging
 from six import iteritems

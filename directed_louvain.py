@@ -12,6 +12,7 @@ from collections import defaultdict
 class DirectedLouvain:
     graph = defaultdict(int)
     reference = defaultdict(int)
+    anti_reference = defaultdict(int)
     doc = []
     louvain = None
 
@@ -33,14 +34,12 @@ class DirectedLouvain:
         else:
             text_str = self._read_list(text)
         print("text parsing...")
-        for sentence in tqdm(nlp.pipe(text_str), total=len(text_str)):
+        for i,sentence in enumerate(tqdm(nlp.pipe(text_str), total=len(text_str))):
             self.doc.append(sentence)
 
         # make and write the graph inside the graph.txt file and generate a dictionary of words to node
         print("building graph...")
         self._graph_reference()
-        del nlp
-        del doc
         print("done.")
         self._write_graph()
 
@@ -105,14 +104,50 @@ class DirectedLouvain:
         """
         return nx.read_weighted_edgelist("graph.txt", nodetype=int, create_using=nx.DiGraph)
 
-    # TODO --- remplacer le if/else par un setdefault (voir _community_of_words)
-    def _graph_reference(self):
+    def _graph_reference(self,window=2):
         """
         Transform a doc type into a graph and a word-to-node dictionary
         """
         numbering = 0
+        denumbering = defaultdict()
         for sentence in self.doc:
+            #print(sentence)
             for token in sentence:
+                if token.dep_ != "ROOT":
+                    if token.head.text not in self.reference:
+                        self.reference[token.head.text] = numbering
+                        denumbering[numbering] = token.head.text
+                        numbering += 1
+                    if token.text not in self.reference:
+                        self.reference[token.text] = numbering
+                        denumbering[numbering] = token.text
+                        numbering += 1
+
+                    '''if (self.reference[token.head.text], self.reference[token.text]) in self.graph:
+                        self.graph[(self.reference[token.head.text], self.reference[token.text])] += 1
+                    else:
+                        self.graph[(self.reference[token.head.text], self.reference[token.text])] = 1'''
+                    #self.graph[(self.reference[token.head.text], self.reference[token.text])] += 1
+
+            for token in sentence:
+                ct = token
+                i = 0
+                while(i<window):
+                    self.graph[(self.reference[ct.head.text], self.reference[token.text])] += 1
+                    ct = ct.head
+                    i += 1
+                    if ct.dep_ == "ROOT":
+                        break
+
+    def _graph_reference_bis(self, window=2):
+        """
+        Transform a doc type into a graph and a word-to-node dictionary
+        """
+        numbering = 0
+        for i,sentence in enumerate(self.doc):
+            G = nx.MultiDiGraph()
+            localnumbering = { i: str(w) for i,w in enumerate(sentence) }
+            for index,token in enumerate(sentence):
                 if token.dep_ != "ROOT":
                     if token.head.text not in self.reference:
                         self.reference[token.head.text] = numbering
@@ -121,11 +156,22 @@ class DirectedLouvain:
                         self.reference[token.text] = numbering
                         numbering += 1
 
-                    '''if (self.reference[token.head.text], self.reference[token.text]) in self.graph:
-                        self.graph[(self.reference[token.head.text], self.reference[token.text])] += 1
-                    else:
-                        self.graph[(self.reference[token.head.text], self.reference[token.text])] = 1'''
-                    self.graph[(self.reference[token.head.text], self.reference[token.text])] += 1
+                if i==0:
+                    G.add_edge(localdict[token.head.text],localdict[token.text])
+                    #self.graph[(self.reference[token.head.text], self.reference[token.text])] += 1
+
+            if i == 0:
+                for e in list(nx.bfs_edges(G, source=localdict["cause"], depth_limit=window)):
+                    print(self.reference[localnumbering[localdict["cause"]]],self.reference[localnumbering[e[1]]])
+                    self.graph[(self.reference[localnumbering[localdict["cause"]]], self.reference[localnumbering[e[1]]])] += 1
+                print(self.graph)
+
+                #print(G.nodes,token.head.text,token.text)
+
+            '''for source in G.nodes:
+                for e in list(nx.bfs_edges(G, source=source,depth_limit=window)):
+                    self.graph[(source, e[1])] += 1'''
+
 
     def _community_of_words(self, community, reference):
         """
