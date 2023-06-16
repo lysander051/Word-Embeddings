@@ -18,7 +18,7 @@ class DirectedLouvain:
     louvain = None
     matrix = None
 
-    def __init__(self, text="text.txt", pipeline="en_core_web_sm", output_graph="graph.txt", gamma=55, verbose=False, trame=True):
+    def __init__(self, text=None, filename=None, pipeline="en_core_web_sm", output_graph="graph.txt", gamma=55, verbose=False, trame=True):
         """
         Uses the directed version of the louvain algorithm to analyse the text file.
 
@@ -42,15 +42,18 @@ class DirectedLouvain:
             print("loading spacy pipeline...")
             nlp = spacy.load(pipeline, disable=["ner"])
 
-            if isinstance(text, str):
+            if filename is None:
                 text_str = self._read_text(text)
             else:
-                parsed_text = ppcs.extract_text(sys.argv[1], lemmatize=True, lower_words=True, number=False, punct=False, en=True, min_freq=20, alpha=True, min_length_word=1)
-                text_str = self._read_list(text)
+                parsed_text = ppcs.extract_text(filename, lemmatize=True, lower_words=True, number=False, punct=False, en=True, min_freq=20, alpha=True, min_length_word=1)
+                text_str = self._read_list(parsed_text)
 
             print("text parsing...")
             for i,sentence in enumerate(tqdm(nlp.pipe(text_str), total=len(text_str))):
                 self.doc.append(sentence)
+
+            '''for i,sentence in enumerate(nlp.pipe(text_str, n_process=16)):
+                self.doc.append(sentence)'''
 
             # make and write the graph inside the graph.txt file and generate a dictionary of words to node
             print("building graph...")

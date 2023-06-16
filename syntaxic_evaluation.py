@@ -7,37 +7,39 @@ import sys
 if(sys.argv[1].split(".")[-1] == "pk"):
     louvain = dl.DirectedLouvain(trame=False,gamma=50)
 else:
-    louvain = dl.DirectedLouvain(sys.argv[1], gamma=50)
+    louvain = dl.DirectedLouvain(filename=sys.argv[1], gamma=50)
 
-# creating the SINr object from matrix and dico
-sinr = ge.SINr.load_from_adjacency_matrix(*louvain.load_data())
+# creating the SINr object from matrix and dico only if graph has been generated
+if(sys.argv[1].split(".")[-1] == "pk"):
+    sinr = ge.SINr.load_from_adjacency_matrix(*louvain.load_data())
 
-# computing communities using Directed Louvain
-communities = louvain.get_community()
+    # computing communities using Directed Louvain
+    communities = louvain.get_community()
 
-sinr.extract_embeddings(communities)
+    sinr.extract_embeddings(communities)
 
-sinr_vectors = ge.InterpretableWordsModelBuilder(sinr, "corpus", n_jobs=8, n_neighbors=5).build()#.with_embeddings_nr().with_vocabulary().build()
+    sinr_vectors = ge.InterpretableWordsModelBuilder(sinr, "corpus", n_jobs=8, n_neighbors=5).build()#.with_embeddings_nr().with_vocabulary().build()
 
-print("\nType your word to search its neighbors or search for an empty word to exit:")
-while True:
-    try:
-        word = input()
-        if word == "":
-            break
-        desc = sinr_vectors.get_obj_descriptors(word, topk_dim=5, topk_val=5)
-        ster = sinr_vectors.get_obj_stereotypes(word, topk_dim=5, topk_val=5)
+    print("\nType your word to search its neighbors or search for an empty word to exit:")
+    while True:
+        try:
+            word = input()
+            if word == "":
+                break
+            desc = sinr_vectors.get_obj_descriptors(word, topk_dim=5, topk_val=5)
+            ster = sinr_vectors.get_obj_stereotypes(word, topk_dim=5, topk_val=5)
 
-        for d in desc:
-            print(list(d.values())[2:])
+            for d in desc:
+                print(list(d.values())[2:])
 
-        print()
+            print()
 
-        for s in ster:
-            print(list(s.values())[2:])
+            for s in ster:
+                print(list(s.values())[2:])
 
-    except:
-        print("Couldn't find this word")
+        except:
+            print("Couldn't find this word")
+
 #sinr_vectors.light_model_save() #Cette fonction sauve pas l'objet model, mais directement le dictionnaire mot -> array pour que ce soit évaluable
 
 #sinr_vectors_new = ge.SINrVectors("corpus_light") #déclaration de l'objet sinr avec le nom du .pk du modele
