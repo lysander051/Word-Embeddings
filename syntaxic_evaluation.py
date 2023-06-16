@@ -1,6 +1,5 @@
 from nltk.corpus import reuters
 import sinr.sinr.graph_embeddings as ge
-import sinr.sinr.text.preprocess as ppcs
 from sinr.sinr.text.pmi import pmi_filter
 import directed_louvain as dl
 import sys
@@ -8,7 +7,7 @@ import sys
 if(sys.argv[1].split(".")[-1] == "pk"):
     louvain = dl.DirectedLouvain(trame=False,gamma=50)
 else:
-    louvain = dl.DirectedLouvain(ppcs.extract_text(sys.argv[1], lemmatize=True, lower_words=True, number=False, punct=False, en=True, min_freq=20, alpha=True, min_length_word=1), gamma=50)
+    louvain = dl.DirectedLouvain(sys.argv[1], gamma=50)
 
 # creating the SINr object from matrix and dico
 sinr = ge.SINr.load_from_adjacency_matrix(*louvain.load_data())

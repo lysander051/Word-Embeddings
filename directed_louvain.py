@@ -1,6 +1,7 @@
 #!/usr/bin/env
-import spacy, scipy
+import spacy, scipy, statistics
 import directedlouvain as dl
+import sinr.sinr.text.preprocess as ppcs
 import networkx as nx
 import networkit
 import timeit
@@ -11,25 +12,30 @@ from collections import defaultdict
 
 class DirectedLouvain:
     graph = defaultdict(int)
-     = defaultdict(int)
-    ids_to_words = defaultdict(int)
+    words_to_ids = dict()
+    ids_to_words = dict()
     doc = []
     louvain = None
+    matrix = None
 
-    def __init__(self, text="text.txt", pipeline="en_core_web_sm", gamma=55, verbose=False, trame=True):
+    def __init__(self, text="text.txt", pipeline="en_core_web_sm", output_graph="graph.txt", gamma=55, verbose=False, trame=True):
         """
         Uses the directed version of the louvain algorithm to analyse the text file.
 
         :param text: Path to the text file to analyse.
         :param pipeline: Specify the spacy pipeline to use.
+        :param output_graph: name of the graph generated using Spacy
+        :param gamma: resolution parameter enabling to control communities' sizes
+        :param verbose: enables verbose mode for Directed Louvain's algorithm
+        :param trame: enables the whole framework (including spacy), False ignores this part
 
         See also:
         `Spacy homepage <https://spacy.io/models>`_
         """
         if (not(trame)):
             print("loading data...")
-            self.graph, self.words_to_ids = self.load_data()
-            #self.graph = nx.from_scipy_sparse_array(self.graph, create_using=nx.DiGraph)
+            self.matrix, self.words_to_ids = self.load_data()
+            self.graph = nx.from_scipy_sparse_array(self.matrix, create_using=nx.DiGraph)
             print("done.")
 
         else:
@@ -39,7 +45,9 @@ class DirectedLouvain:
             if isinstance(text, str):
                 text_str = self._read_text(text)
             else:
+                parsed_text = ppcs.extract_text(sys.argv[1], lemmatize=True, lower_words=True, number=False, punct=False, en=True, min_freq=20, alpha=True, min_length_word=1)
                 text_str = self._read_list(text)
+
             print("text parsing...")
             for i,sentence in enumerate(tqdm(nlp.pipe(text_str), total=len(text_str))):
                 self.doc.append(sentence)
@@ -53,11 +61,22 @@ class DirectedLouvain:
         # computing communities
         print("community detection...") 
         start = timeit.default_timer()
-        self.louvain = dl.Community("graph.txt", weighted=True, gamma=gamma)
+        self.louvain = dl.Community(output_graph, weighted=True, gamma=gamma)
         self.louvain.run(verbose)
         stop = timeit.default_timer()
-        community = self._community_of_words(self.louvain.last_level(), self.words_to_ids)
-        print("Average community size: " + str(len(self.words_to_ids) / len(community)))
+        dict_communities = self.louvain.last_level()
+        word_communities = self._community_of_words(dict_communities)
+
+        communities = [ list() for _ in range(max(dict_communities.values())+1) ]
+        for node, community in dict_communities.items():
+            communities[community].append(node)
+
+        sizes_communities = [ len(community) for community in communities ]
+        print(len(self.words_to_ids),sum(sizes_communities))
+
+        print("Average community size: {}".format(len(self.words_to_ids) / len(word_communities)))
+        print("Average community size: {}".format(statistics.mean(sizes_communities)))
+        print("Standard deviation for community size: {}".format(statistics.stdev(sizes_communities)))
         print('Time for community detection: ', stop - start)
         print("modularity: " + str(self.louvain.modularity()))
         G=nx.read_weighted_edgelist("graph.txt", nodetype=int, create_using=nx.DiGraph)
@@ -93,12 +112,12 @@ class DirectedLouvain:
             dico, matrix = pickle.load(savefile)
         return matrix, dico
 
-    # TODO --- passer le nom du fichier en argument avec valeur par défaut
-    def _save_data(self):
+    # DONE --- passer le nom du fichier en argument avec valeur par défaut
+    def _save_data(self,filename="data.pk"):
         """
         Saves the graph as an adjacency matrix and the word-to-node dictionary in the data.pk file
         """
-        filename = "data.pk"
+        
         with open(filename, 'wb') as savefile:
             pickle.dump((self.words_to_ids,
                         scipy.sparse._coo.coo_matrix(nx.to_scipy_sparse_array(self._get_networkx_graph()))),
@@ -106,14 +125,14 @@ class DirectedLouvain:
                         protocol=pickle.HIGHEST_PROTOCOL)
         return filename
 
-    # TODO --- passer le nom du fichier en argument avec valeur par défaut
-    def _get_networkx_graph(self):
+    # DONE --- passer le nom du fichier en argument avec valeur par défaut
+    def _get_networkx_graph(self,filename="graph.txt"):
         """
         Creates a graph under the networkx format
 
         :return: a networkx graph of the graph
         """
-        return nx.read_weighted_edgelist("graph.txt", nodetype=int, create_using=nx.DiGraph)
+        return nx.read_weighted_edgelist(filename, nodetype=int, create_using=nx.DiGraph)
 
     def _graph_words_to_ids(self,window=2):
         """
@@ -122,7 +141,6 @@ class DirectedLouvain:
         numbering = 0
         denumbering = defaultdict()
         for sentence in self.doc:
-            #print(sentence)
             for token in sentence:
                 if token.dep_ != "ROOT":
                     if token.head.text not in self.words_to_ids:
@@ -134,11 +152,10 @@ class DirectedLouvain:
                         denumbering[numbering] = token.text
                         numbering += 1
 
-                    '''if (self.words_to_ids[token.head.text], self.words_to_ids[token.text]) in self.graph:
-                        self.graph[(self.words_to_ids[token.head.text], self.words_to_ids[token.text])] += 1
-                    else:
-                        self.graph[(self.words_to_ids[token.head.text], self.words_to_ids[token.text])] = 1'''
-                    #self.graph[(self.words_to_ids[token.head.text], self.words_to_ids[token.text])] += 1
+                elif token.text not in self.words_to_ids:
+                    self.words_to_ids[token.text] = numbering
+                    denumbering[numbering] = token.text
+                    numbering += 1
 
             for token in sentence:
                 ct = token
@@ -184,14 +201,14 @@ class DirectedLouvain:
                     self.graph[(source, e[1])] += 1'''
 
 
-    def _community_of_words(self, community, words_to_ids):
+    def _community_of_words(self, community):
         """
         Uses the words_to_ids dictionary to return a dictionary of words to community with the community parameter.
 
         :return: a dictionary of community to words
         """
         correspondence = dict()
-        for word, index in words_to_ids.items():
+        for word, index in self.words_to_ids.items():
             comm = community[index]
             correspondence.setdefault(comm, []).append(word)
         return correspondence
