@@ -11,12 +11,12 @@ from collections import defaultdict
 
 class DirectedLouvain:
     graph = defaultdict(int)
-    reference = defaultdict(int)
-    anti_reference = defaultdict(int)
+     = defaultdict(int)
+    ids_to_words = defaultdict(int)
     doc = []
     louvain = None
 
-    def __init__(self, text="text.txt", pipeline="en_core_web_sm", gamma=55, verbose=False):
+    def __init__(self, text="text.txt", pipeline="en_core_web_sm", gamma=55, verbose=False, trame=True):
         """
         Uses the directed version of the louvain algorithm to analyse the text file.
 
@@ -26,22 +26,29 @@ class DirectedLouvain:
         See also:
         `Spacy homepage <https://spacy.io/models>`_
         """
-        print("loading spacy pipeline...")
-        nlp = spacy.load(pipeline, disable=["ner"])
+        if (not(trame)):
+            print("loading data...")
+            self.graph, self.words_to_ids = self.load_data()
+            #self.graph = nx.from_scipy_sparse_array(self.graph, create_using=nx.DiGraph)
+            print("done.")
 
-        if isinstance(text, str):
-            text_str = self._read_text(text)
         else:
-            text_str = self._read_list(text)
-        print("text parsing...")
-        for i,sentence in enumerate(tqdm(nlp.pipe(text_str), total=len(text_str))):
-            self.doc.append(sentence)
+            print("loading spacy pipeline...")
+            nlp = spacy.load(pipeline, disable=["ner"])
 
-        # make and write the graph inside the graph.txt file and generate a dictionary of words to node
-        print("building graph...")
-        self._graph_reference()
-        print("done.")
-        self._write_graph()
+            if isinstance(text, str):
+                text_str = self._read_text(text)
+            else:
+                text_str = self._read_list(text)
+            print("text parsing...")
+            for i,sentence in enumerate(tqdm(nlp.pipe(text_str), total=len(text_str))):
+                self.doc.append(sentence)
+
+            # make and write the graph inside the graph.txt file and generate a dictionary of words to node
+            print("building graph...")
+            self._graph_words_to_ids()
+            print("done.")
+            self._write_graph()
 
         # computing communities
         print("community detection...") 
@@ -49,13 +56,16 @@ class DirectedLouvain:
         self.louvain = dl.Community("graph.txt", weighted=True, gamma=gamma)
         self.louvain.run(verbose)
         stop = timeit.default_timer()
-        community = self._community_of_words(self.louvain.last_level(), self.reference)
-        print("Average community size: " + str(len(self.reference) / len(community)))
+        community = self._community_of_words(self.louvain.last_level(), self.words_to_ids)
+        print("Average community size: " + str(len(self.words_to_ids) / len(community)))
         print('Time for community detection: ', stop - start)
         print("modularity: " + str(self.louvain.modularity()))
-
+        G=nx.read_weighted_edgelist("graph.txt", nodetype=int, create_using=nx.DiGraph)
+        print("graph on {} nodes and {} edges:".format(len(G.nodes),len(G.edges)))
         # save the matrix and dictionary inside the data.pk file
-        self._save_data()
+
+        if(trame):
+            self._save_data()
 
     def get_community(self):
         """
@@ -70,6 +80,7 @@ class DirectedLouvain:
         return partition
 
     # TODO --- passer le nom du fichier en argument avec valeur par défaut
+    # NOTE --- pourquoi ne pas initialiser les attributs ?
     def load_data(self):
         """
         Loads the data.pk file to return an adjacency matrix of the graph and a dictionary (word to node)
@@ -89,7 +100,7 @@ class DirectedLouvain:
         """
         filename = "data.pk"
         with open(filename, 'wb') as savefile:
-            pickle.dump((self.reference,
+            pickle.dump((self.words_to_ids,
                         scipy.sparse._coo.coo_matrix(nx.to_scipy_sparse_array(self._get_networkx_graph()))),
                         savefile,
                         protocol=pickle.HIGHEST_PROTOCOL)
@@ -104,7 +115,7 @@ class DirectedLouvain:
         """
         return nx.read_weighted_edgelist("graph.txt", nodetype=int, create_using=nx.DiGraph)
 
-    def _graph_reference(self,window=2):
+    def _graph_words_to_ids(self,window=2):
         """
         Transform a doc type into a graph and a word-to-node dictionary
         """
@@ -114,32 +125,32 @@ class DirectedLouvain:
             #print(sentence)
             for token in sentence:
                 if token.dep_ != "ROOT":
-                    if token.head.text not in self.reference:
-                        self.reference[token.head.text] = numbering
+                    if token.head.text not in self.words_to_ids:
+                        self.words_to_ids[token.head.text] = numbering
                         denumbering[numbering] = token.head.text
                         numbering += 1
-                    if token.text not in self.reference:
-                        self.reference[token.text] = numbering
+                    if token.text not in self.words_to_ids:
+                        self.words_to_ids[token.text] = numbering
                         denumbering[numbering] = token.text
                         numbering += 1
 
-                    '''if (self.reference[token.head.text], self.reference[token.text]) in self.graph:
-                        self.graph[(self.reference[token.head.text], self.reference[token.text])] += 1
+                    '''if (self.words_to_ids[token.head.text], self.words_to_ids[token.text]) in self.graph:
+                        self.graph[(self.words_to_ids[token.head.text], self.words_to_ids[token.text])] += 1
                     else:
-                        self.graph[(self.reference[token.head.text], self.reference[token.text])] = 1'''
-                    #self.graph[(self.reference[token.head.text], self.reference[token.text])] += 1
+                        self.graph[(self.words_to_ids[token.head.text], self.words_to_ids[token.text])] = 1'''
+                    #self.graph[(self.words_to_ids[token.head.text], self.words_to_ids[token.text])] += 1
 
             for token in sentence:
                 ct = token
                 i = 0
                 while(i<window):
-                    self.graph[(self.reference[ct.head.text], self.reference[token.text])] += 1
+                    self.graph[(self.words_to_ids[ct.head.text], self.words_to_ids[token.text])] += 1
                     ct = ct.head
                     i += 1
                     if ct.dep_ == "ROOT":
                         break
 
-    def _graph_reference_bis(self, window=2):
+    def _graph_words_to_ids_bis(self, window=2):
         """
         Transform a doc type into a graph and a word-to-node dictionary
         """
@@ -149,21 +160,21 @@ class DirectedLouvain:
             localnumbering = { i: str(w) for i,w in enumerate(sentence) }
             for index,token in enumerate(sentence):
                 if token.dep_ != "ROOT":
-                    if token.head.text not in self.reference:
-                        self.reference[token.head.text] = numbering
+                    if token.head.text not in self.words_to_ids:
+                        self.words_to_ids[token.head.text] = numbering
                         numbering += 1
-                    if token.text not in self.reference:
-                        self.reference[token.text] = numbering
+                    if token.text not in self.words_to_ids:
+                        self.words_to_ids[token.text] = numbering
                         numbering += 1
 
                 if i==0:
                     G.add_edge(localdict[token.head.text],localdict[token.text])
-                    #self.graph[(self.reference[token.head.text], self.reference[token.text])] += 1
+                    #self.graph[(self.words_to_ids[token.head.text], self.words_to_ids[token.text])] += 1
 
             if i == 0:
                 for e in list(nx.bfs_edges(G, source=localdict["cause"], depth_limit=window)):
-                    print(self.reference[localnumbering[localdict["cause"]]],self.reference[localnumbering[e[1]]])
-                    self.graph[(self.reference[localnumbering[localdict["cause"]]], self.reference[localnumbering[e[1]]])] += 1
+                    print(self.words_to_ids[localnumbering[localdict["cause"]]],self.words_to_ids[localnumbering[e[1]]])
+                    self.graph[(self.words_to_ids[localnumbering[localdict["cause"]]], self.words_to_ids[localnumbering[e[1]]])] += 1
                 print(self.graph)
 
                 #print(G.nodes,token.head.text,token.text)
@@ -173,14 +184,14 @@ class DirectedLouvain:
                     self.graph[(source, e[1])] += 1'''
 
 
-    def _community_of_words(self, community, reference):
+    def _community_of_words(self, community, words_to_ids):
         """
-        Uses the reference dictionary to return a dictionary of words to community with the community parameter.
+        Uses the words_to_ids dictionary to return a dictionary of words to community with the community parameter.
 
         :return: a dictionary of community to words
         """
         correspondence = dict()
-        for word, index in reference.items():
+        for word, index in words_to_ids.items():
             comm = community[index]
             correspondence.setdefault(comm, []).append(word)
         return correspondence
