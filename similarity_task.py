@@ -1,51 +1,22 @@
-from nltk.corpus import reuters
 import sinr.sinr.graph_embeddings as ge
-from sinr.sinr.text.pmi import pmi_filter
 import directed_louvain as dl
 import sys
 
-if(sys.argv[1].split(".")[-1] == "pk"):
-    louvain = dl.DirectedLouvain(trame=False,gamma=50)
-else:
-    louvain = dl.DirectedLouvain(filename=sys.argv[1], gamma=50)
-
 # creating the SINr object from matrix and dico only if graph has been generated
-if(sys.argv[1].split(".")[-1] == "pk"):
-    sinr = ge.SINr.load_from_adjacency_matrix(*louvain.load_data())
+louvain = dl.DirectedLouvain(trame=False,gamma=50)
+sinr = ge.SINr.load_from_adjacency_matrix(*louvain.load_data())
 
-    # computing communities using Directed Louvain
-    communities = louvain.get_community()
+# computing communities using Directed Louvain 
+communities = louvain.get_community()
+sinr.extract_embeddings(communities)
 
-    sinr.extract_embeddings(communities)
+sinr_vectors = ge.InterpretableWordsModelBuilder(sinr, "corpus", n_jobs=8, n_neighbors=5).build()#.with_embeddings_nr().with_vocabulary().build()
+sinr_vectors.light_model_save() #Cette fonction sauve pas l'objet model, mais directement le dictionnaire mot -> array pour que ce soit évaluable
 
-    sinr_vectors = ge.InterpretableWordsModelBuilder(sinr, "corpus", n_jobs=8, n_neighbors=5).build()#.with_embeddings_nr().with_vocabulary().build()
+sinr_vectors_new = ge.SINrVectors("corpus_light") #déclaration de l'objet sinr avec le nom du .pk du modele
+sinr_vectors_new.load()
 
-    print("\nType your word to search its neighbors or search for an empty word to exit:")
-    while True:
-        try:
-            word = input()
-            if word == "":
-                break
-            desc = sinr_vectors.get_obj_descriptors(word, topk_dim=5, topk_val=5)
-            ster = sinr_vectors.get_obj_stereotypes(word, topk_dim=5, topk_val=5)
-
-            for d in desc:
-                print(list(d.values())[2:])
-
-            print()
-
-            for s in ster:
-                print(list(s.values())[2:])
-
-        except:
-            print("Couldn't find this word")
-
-#sinr_vectors.light_model_save() #Cette fonction sauve pas l'objet model, mais directement le dictionnaire mot -> array pour que ce soit évaluable
-
-#sinr_vectors_new = ge.SINrVectors("corpus_light") #déclaration de l'objet sinr avec le nom du .pk du modele
-#sinr_vectors_new.load()
-
-'''import logging
+import logging
 from six import iteritems
 from web.datasets.similarity import fetch_MEN, fetch_WS353, fetch_SimLex999, fetch_RG65, fetch_MTurk, fetch_RW
 from web.embeddings import load_embedding
@@ -84,4 +55,4 @@ import csv
 with open('syntaxic_similarity.csv', 'w') as file :
     writer = csv.writer(file, delimiter=';')
     for d in dataw :
-        writer.writerow(d)'''
+        writer.writerow(d)

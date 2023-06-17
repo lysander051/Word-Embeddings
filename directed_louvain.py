@@ -2,6 +2,7 @@
 import spacy, scipy, statistics
 import directedlouvain as dl
 import sinr.sinr.text.preprocess as ppcs
+from sinr.sinr.text.pmi import pmi_filter
 import networkx as nx
 import networkit
 import timeit
@@ -34,8 +35,8 @@ class DirectedLouvain:
         """
         if (not(trame)):
             print("loading data...")
-            self.matrix, self.words_to_ids = self.load_data()
-            self.graph = nx.from_scipy_sparse_array(self.matrix, create_using=nx.DiGraph)
+            self.matrix, self.words_to_ids = self.load_data(filename)
+            self.matrix = pmi_filter(self.matrix)
             print("done.")
 
         else:
@@ -103,7 +104,7 @@ class DirectedLouvain:
 
     # TODO --- passer le nom du fichier en argument avec valeur par défaut
     # NOTE --- pourquoi ne pas initialiser les attributs ?
-    def load_data(self):
+    def load_data(self,filename="data.txt"):
         """
         Loads the data.pk file to return an adjacency matrix of the graph and a dictionary (word to node)
 
@@ -111,7 +112,7 @@ class DirectedLouvain:
         """
         dico = dict()
         matrix = list()
-        with open("data.pk", "rb") as savefile:
+        with open(filename, "rb") as savefile:
             dico, matrix = pickle.load(savefile)
         return matrix, dico
 
